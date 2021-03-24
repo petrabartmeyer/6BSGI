@@ -1,4 +1,4 @@
-using JuMP, Gurobi, DataFrame
+using JuMP, Gurobi, DataFrames
 
 T = 24			# numero total de intervalos de tempo (1 por hora)
 R = 4 			# numero de reservatorios a serem acoplados
@@ -46,13 +46,15 @@ function modelo(data::Union{DataFrame, Dict})
     ############################ Objective function################################
     ###############################################################################
   
-    @objective(model, sum(Q[r,t] for r=1:R, t=1:T)  + sum(sigma[j,r]*(u_on[j,r,t] + u_off[j,r,t]) for r=1:R, t=1:T, j=1:J[r]))
+    @objective(model, sum(Q[r,t] for r=1:R, t=1:T)  + 
+                sum(sigma[j,r]*(u_on[j,r,t] + u_off[j,r,t]) for r=1:R, t=1:T, j=1:J[r]))
     
     ###############################################################################
     ############################ Variáveis ########################################
     ###############################################################################
   
-    @constraint(model, [r=1:R, t=1:T], v[r,t] - v[r, t-1] +c1*(R[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] for m in R_up[r] if (t-tau[m,r])>=1) == c1*y[r,t] )
+    @constraint(model, [r=1:R, t=1:T], v[r,t] - v[r, t-1] 
+            +c1*(R[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] for m in R_up[r] if (t-tau[m,r])>=1) == c1*y[r,t] ))
     @constraint(model, [r=1:R, t=1:T], v_min[r] <= v[r,t])
     @constraint(model, [r=1:R, t=1:T], v_max[r] >= v[r,t])
     @constraint(model, [r=1:R, t=1:T], sum(pg[j,r,t] for j=1:n[r,t]) == L[r,t])
@@ -68,7 +70,7 @@ function modelo(data::Union{DataFrame, Dict})
     ######################### ativacao/destivacao das turbinas ####################
     ###############################################################################
     @constraint(model, [r=1:R, t=2:T, j=1:J[r]], u_on[j,r,t] >= u[j,r,t] - u[j,r,t-1])
-    @constraint(model, [r=1:R, t=2:T, j=1:J[r]], u_off[j,r,t] >= u[j,r,t-1] - u[j,r,t] )
+    @constraint(model, [r=1:R, t=2:T, j=1:J[r]], u_off[j,r,t] >= u[j,r,t-1] - u[j,r,t])
     ###############################################################################
 
 
@@ -81,4 +83,4 @@ function modelo(data::Union{DataFrame, Dict})
     #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], z[r,j,t] <= u[j,r,t])
 
     return model
-end
+# end
