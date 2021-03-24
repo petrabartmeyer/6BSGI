@@ -61,10 +61,30 @@ def load_data(dataset):
 
     dftau = read_csv(join(dataset, 'cascata.csv'), index_col=0, sep="\s*,\s*", engine='python')
     # Builds a list of lists
-    cascata = l = list(dftau[dftau > 0].loc[i].dropna().index.to_list() for i in dftau.index)
+    cascata = list(dftau[dftau > 0].loc[i].dropna().index.to_list() for i in dftau.index)
     
     return problem, cascata, dftau.to_numpy()
 
+
+def load_simulation(dataset, instance, problem):
+
+    ipath = join(dataset, instance)
+
+    if not isdir(ipath):
+
+        return {}
+
+    data = {}
+
+    data['demanda'] = read_csv(join(ipath, 'demanda.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
+
+    # Falta ajustar a vazao defluente no t-tau.
+    data['y'] = read_csv(join(ipath, 'afluente.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
+
+    data['v0'] = read_csv(join(ipath, 'volume_inicial.csv'), index_col=0, sep="\s*,\s*", engine='python').to_dict()
+
+    return data
+    
 
 def add_dict_to_unity(problem, fname):
     """
