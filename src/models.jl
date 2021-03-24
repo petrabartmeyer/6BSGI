@@ -28,7 +28,8 @@ delta_tempo = 8					# tempo mínimo até religar a unidade (turbina)
 pg_rampa = 10					# delta de potência (absoluta) entre 2 intervalos de tempos para cada turbina
 K = []						# número de zona da curva colina para cada turbina de cada usina
 alpha_demanda = 0.95				# multiplicador da demanda a ser cumprida
-
+delta_fcm = .85
+fcm_max =  poly(a,v_max) 
 
 function modelo(data::Union{DataFrame, Dict})
     model = Model(Gurobi.Optimizer)
@@ -82,7 +83,7 @@ function modelo(data::Union{DataFrame, Dict})
     ###############################################################################
     ######################### Volume ao final do dia ##############################
     ###############################################################################
-    @constraint(model, [r=1:R, t=T], v[r,t] >= fcm_final_dia[r])	
+    @constraint(model, [r=1:R, t=T], fcm_final_dia[r]>= fcm_max[r]*delta_fcm[r])	
    # @constraint(model, [r=1:T, t=T, l=1:L[r]], alpha[r] >= coef[r,l,1] + coef[r,l,2]*v[r,t])
     
     
