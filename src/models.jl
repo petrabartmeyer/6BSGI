@@ -1,12 +1,16 @@
 using JuMP, Gurobi, DataFrames
 
+
+#poly(a::Vector,x::Float64) = sum(a[i]*x^(i-1) for i in eachindex(a)) 
 T = 24			# numero total de intervalos de tempo (1 por hora)
 R = 4 			# numero de reservatorios a serem acoplados
 J = [3 3 3 5]		# numero de unidades (turbinas) para cada usina (reservatorio)	
 L = [3 5 4 2]		# numero de retas aproximando a funcao alpha (custo da agua) para cada reservatorio	
-a_bar0 = 3*a4*x0^4 + a3*x0^3 + a0;
-a_bar1 = - 8*a4*x0^3 - 3*a3*x0^2 + a1;
-a_bar2 = 6*a4*x0^2 + 3*a3*x0 + a2;
+x0 = 2000
+a = [243 1.07 -0.011 -0.000000521 -0.00000000000924]
+a_bar0 = 3*a[5]*x0^4 + a[4]*x0^3 + a[1]
+a_bar1 = - 8*a[5]*x0^3 - 3*a[4]*x0^2 + a[2]
+a_bar2 = 6*a[5]*x0^2 + 3*a[4]*x0 + a[3]
 ###############################################################################
 ############################ Parametros #######################################
 ###############################################################################
@@ -29,7 +33,7 @@ pg_rampa = 10					# delta de potência (absoluta) entre 2 intervalos de tempos p
 K = []						# número de zona da curva colina para cada turbina de cada usina
 alpha_demanda = 0.95				# multiplicador da demanda a ser cumprida
 delta_fcm = .85
-fcm_max =  poly(a,v_max) 
+fcm_max = sum(a[i]*v_max[1]^(i-1) for i in eachindex(a)) # poly(a,v_max) 
 K_pusina = 0
 
 function modelo(data::Union{DataFrame, Dict})
@@ -62,13 +66,13 @@ function modelo(data::Union{DataFrame, Dict})
     ############################ Objective function################################
     ###############################################################################
   
-    @objective(model, sum(preco_hora[t]*pg[r,t] for r=1:R, t=1:T)) # + sum(alpha[r] for r=1:R))
+    @objective(model, Max, sum(preco_hora[t]*pg[r,t] for r=1:R, t=1:T)) # + sum(alpha[r] for r=1:R))
     
     ###############################################################################
     ############################ Variáveis ########################################
     ###############################################################################
     @constraint(model, [r=1:R, t=1], v[r,t] - v_inicial[r] + c1*(Q[r,t]+s[r,t]) == c1*y[r,t] )
-    @constraint(model, [r=1:R, t=2:T], v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] for m in R_up[r] if (t-tau[m,r])>=1) == c1*y[r,t] )
+    @constraint(model, [r=1:R, t=2:T], v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] for m in R_up[r] if (t-tau[m,r])>=1)) == c1*y[r,t] )
     @constraint(model, [r=1:R, t=1:T], v_min[r] <= v[r,t])
     @constraint(model, [r=1:R, t=1:T], v_max[r] >= v[r,t])
     @constraint(model, [r=1:R, t=1:T], sum(pg[j,r,t] for j=1:n[r,t]) >= alpha_demanda*L[r,t])
