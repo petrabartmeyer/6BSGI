@@ -48,6 +48,7 @@ def load_data(dataset):
 
     # Add information to each unit
     add_dict_to_unity(problem, join(dataset, 'limites_potencia.csv'))
+    add_dict_to_unity(problem, join(dataset, 'rampa.csv'))
 
     add_list_to_unity(problem, 'vazaoMax', join(dataset, 'vazao_turbinada_maxima.csv'))
     add_list_to_unity(problem, 'vazaoMin', join(dataset, 'vazao_turbinada_minima.csv'))
