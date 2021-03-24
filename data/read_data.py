@@ -56,8 +56,14 @@ def load_data(dataset):
     add_list_to_unity(problem, 'perdaHidraulica', join(dataset, 'perda_hidraulica.csv'))
     add_list_to_unity(problem, 'perdaMecTurbina', join(dataset, 'perda_mecanica_turbina.csv'))
     add_list_to_unity(problem, 'rendimentoHidraulico', join(dataset, 'rendimento_hidraulico.csv'))
+
+    # Cascade information
+
+    dftau = read_csv(join(dataset, 'cascata.csv'), index_col=0, sep="\s*,\s*", engine='python')
+    # Builds a list of lists
+    cascata = l = list(dftau[dftau > 0].loc[i].dropna().index.to_list() for i in dftau.index)
     
-    return problem
+    return problem, cascata, dftau.to_numpy()
 
 
 def add_dict_to_unity(problem, fname):
