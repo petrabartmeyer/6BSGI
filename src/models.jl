@@ -1,4 +1,4 @@
-using JuMP, Gurobi, DataFrame
+using JuMP, Gurobi, DataFrames
 
 T = 24			# numero total de intervalos de tempo (1 por hora)
 R = 4 			# numero de reservatorios a serem acoplados
@@ -30,6 +30,7 @@ K = []						# número de zona da curva colina para cada turbina de cada usina
 alpha_demanda = 0.95				# multiplicador da demanda a ser cumprida
 delta_fcm = .85
 fcm_max =  poly(a,v_max) 
+K_pusina = 0
 
 function modelo(data::Union{DataFrame, Dict})
     model = Model(Gurobi.Optimizer)
@@ -81,9 +82,10 @@ function modelo(data::Union{DataFrame, Dict})
    # @constraint(model, [r=1:R, t=1:T, j=1:J[r],k=1:K], pg_max[r,j,t]*z[j,r,k,t] >= pg[j,r,t])
     
     ###############################################################################
-    ######################### Volume ao final do dia ##############################
+    ############################ FCM ao final do dia ##############################
+    ############################ fcm = a0+ a1*v+a2v^2 #############################
     ###############################################################################
-    @constraint(model, [r=1:R, t=T], fcm_final_dia[r]>= fcm_max[r]*delta_fcm[r])	
+    @constraint(model, [r=1:R, t=T], poly(a,v[r,t]) >= fcm_max[r]*delta_fcm[r])	
    # @constraint(model, [r=1:T, t=T, l=1:L[r]], alpha[r] >= coef[r,l,1] + coef[r,l,2]*v[r,t])
     
     
