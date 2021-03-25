@@ -5,11 +5,8 @@ include("models.jl")
 
 hydrosys_folder = "p1"
 
-data = read_data(hydrosys_folder)
+hydro_data = read_data(hydrosys_folder)
 
-usinas = data["usinas"]
-# model = Model(Gurobi.Optimizer)
-#model = Model(Ipopt.Optimizer)
-
-# create_model(model)
+model = Model(Gurobi.Optimizer)
+create_model(model,hydro_data)
 
