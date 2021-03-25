@@ -85,20 +85,16 @@ def get_y(ipath, cascata):
 
     """
     
-    y = read_csv(join(ipath, 'afluente.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
-    defluente = read_csv(join(ipath, 'defluente.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
-
-    m, n = cascata.shape
+    y = read_csv(join(ipath, 'afluente.csv'), index_col=0, sep="\s*,\s*", engine='python')
+    defluente = read_csv(join(ipath, 'defluente.csv'), index_col=0, sep="\s*,\s*", engine='python')
 
     # Adjust the flow in the first hours
-    for j in range(n):
-        for i in range(m):
-            tau = cascata[i, j]
-            if tau > 0:
-                for k in range(tau):
-                    y[k, j] += defluente[23 + (k - tau) + 1, i]
+    for (i, j) in cascata.keys():
+        tau = int(cascata[(i, j)])
+        for k in range(tau):
+            y.loc[k, j] += defluente.loc[23 + (k - tau) + 1, i]
 
-    return y
+    return y.to_numpy()
 
 def add_dict_to_unity(problem, fname):
     """
