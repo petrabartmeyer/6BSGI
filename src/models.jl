@@ -155,11 +155,14 @@ function create_model(model::Model)
 end
 
 
-function create_model(model::Model,hydro_data::Dict; T=24)
-    preco_hora = 3_560*ones(T)
+function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
+    preco_hora = hydro_instance["precos"]
+    T = length(hydro_instance["precos"])
+    
+
     G = 9.8066e-3
     c1 = 3600.
-    usinas = hydro_data["usinas"]
+    usinas = sort(hydro_data["usinas"])
     cascata = hydro_data["cascata"]
     ###############################################################################
     ############################ Variáveis ########################################
@@ -209,7 +212,12 @@ function create_model(model::Model,hydro_data::Dict; T=24)
             @constraint(model, usina["vmin"] <= v[r,t])
             @constraint(model, usina["vmax"] >= v[r,t])
             @constraint(model, sum(q[r,t,j] for j= 1:usina["nUG"])-Q[r,t]==0)
+            if t != 1
+                @constraint(model, v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] 
+                for m in R_up[r] if (t-tau[m,r])>=1)) == c1*y[r,t] )
+            end
             for j in 1:usina["nUG"]
+                # @constraint(model, sum(pg[r,t,j] for j=1:J[r]) >= alpha_demanda*L[r,t])
                 @constraint(model,pst[r,t,j] == pst_func(G,usina["UG"][j]["rendimentoHidraulico"],h[r,t,j],h2[r,t,j],q[r,t,j],q2[r,t,j],hq[r,t,j]))
                 @constraint(model, pmt[r,t,j] == pmt_func(pg[r,t,j],usina["UG"][j]["perdaMecTurbina"]))
                 c = pgg_lin(usina["UG"][j]["perdaGerador"],usina["UG"][j]["pmin"],usina["UG"][j]["pmax"])    
@@ -226,9 +234,7 @@ function create_model(model::Model,hydro_data::Dict; T=24)
         end
     end
     # Por fazer
-    # @constraint(model, [r=1:R, t=1], v[r,t] - v0[r] + c1*(Q[r,t]+s[r,t]) == c1*y[r,t] )
     # @constraint(model, [r=1:R, t=2:T], v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] for m in R_up[r] if (t-tau[m,r])>=1)) == c1*y[r,t] )
-    # @constraint(model, [r=1:R, t=1:T], sum(pg[r,t,j] for j=1:J[r]) >= alpha_demanda*L[r,t])
     # #########
 
             
@@ -273,5 +279,5 @@ function create_model(model::Model,hydro_data::Dict; T=24)
         #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], z[r,j,t] <= u[j,r,t])
         return model
 end
-model = Model(optimizer_with_attributes(Gurobi.Optimizer, "NonConvex" => 2, "OutputFlag" => 0))
-create_model(model,hydro_data)
+# model = Model(optimizer_with_attributes(Gurobi.Optimizer, "NonConvex" => 2, "OutputFlag" => 0))
+# create_model(model,hydro_data)
