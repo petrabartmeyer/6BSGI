@@ -57,16 +57,18 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
     delta_fcm = Dict("H1"=> 0.5, "H2"=> 0.5,"H3"=> 0.5,"H4"=> 0.5 )
 
     G = 9.8066e-3
-    c1 = 3600.
+    c1 = 3600/1e6
     usinas = sort(hydro_data["usinas"])
     cascata = hydro_data["cascata"]
     y = hydro_instance["y"]
+    L = hydro_instance["demanda"]
+    alpha_demanda = 0.5
     ###############################################################################
     ############################ Variáveis ########################################
     ###############################################################################
       
     # volume armazenado no usina r no tempo t
-    @variable(model, v[r in keys(usinas), t in 1:T])			
+    @variable(model, 0<=v[r in keys(usinas), t in 1:T])			
     # volume vertido no usina r no tempo t
     @variable(model, 0 <= s[r in keys(usinas), t in 1:T])			
     # vazao turbinada no usina r no tempo t
@@ -76,16 +78,16 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
     # vazao turbinada pelo gerador j do usina r no tempo t
     @variable(model, 0 <= q[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])    
     @variable(model, 0 <= h[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])		 
-    @variable(model, q2[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])		
-    @variable(model, h2[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])		
-    @variable(model, hq[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])
+    @variable(model, 0<=q2[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])		
+    @variable(model, 0<=h2[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])		
+    @variable(model,0<= hq[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])
     #u_jrt = 1 se a unidade j do usina r no tempo T está ligado		
-    @variable(model, pmt[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])	
-    @variable(model, pgg[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])	
-    @variable(model, pst[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])	
-    @variable(model, fcm[r in keys(usinas), t in 1:T])	
-    @variable(model, fcj[r in keys(usinas), t in 1:T])	
-         
+    @variable(model, 0<=pmt[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])	
+    @variable(model, 0<=pgg[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])	
+    @variable(model, 0<=pst[r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]])	
+    @variable(model, 0<=fcm[r in keys(usinas), t in 1:T])	
+    @variable(model, 0<=fcj[r in keys(usinas), t in 1:T])	
+    @variable(model, 0<=mercado)	
     ###############################################################################
     ############################ Objective function################################
     ###############################################################################
@@ -107,27 +109,36 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
 
         for t in 1:T
             @constraint(model, fcm[r,t] == poly(coef_FCM,v[r,t]))
-            @constraint(model, fcj[r,t] == poly(coef_FCJ,Q[r,t]-s[r,t]))
+            #@constraint(model, fcj[r,t] == poly(coef_FCJ,Q[r,t]-s[r,t]))
             @constraint(model, usina["vmin"] <= v[r,t])
             @constraint(model, usina["vmax"] >= v[r,t])
             @constraint(model, sum(q[r,t,j] for j= 1:usina["nUG"])-Q[r,t]==0)
             if t != 1
-                @constraint(model, v[r,t] - v[r, t-1] - c1*(Q[r,t]+s[r,t] - sum(Q[m[1],t-cascata[m]]+s[m[1],t-cascata[m]] 
-                for m in keys(cascata) if m[2] == r && t - cascata[m] >= 1 )) == c1*y[r][t])
+                @constraint(model, v[r,t] == v[r, t-1] - c1*(Q[r,t]+s[r,t]) + c1*(sum(Q[m[1],t-cascata[m]]+s[m[1],t-cascata[m]] 
+               for m in keys(cascata) if m[2] == r && t - cascata[m] >= 1 )) + c1*y[r][t])
             end
+         
+               @constraint(model, sum(pg[r,t,j] for j in 1:usina["nUG"]) +mercado >= alpha_demanda*L[r][t])
+               @constraint(model, sum(pg[r,t,j] for j in 1:usina["nUG"]) <= (2-alpha_demanda)*L[r][t])
             for j in 1:usina["nUG"]
-                # @constraint(model, sum(pg[r,t,j] for j=1:J[r]) >= alpha_demanda*L[r,t])
-                @constraint(model,pst[r,t,j] == pst_func(G,usina["UG"][j]["rendimentoHidraulico"],h[r,t,j],h2[r,t,j],q[r,t,j],q2[r,t,j],hq[r,t,j]))
-                @constraint(model, pmt[r,t,j] == pmt_func(pg[r,t,j],usina["UG"][j]["perdaMecTurbina"]))
+                #@constraint(model,pst[r,t,j] == pst_func(G,usina["UG"][j]["rendimentoHidraulico"],h[r,t,j],h2[r,t,j],q[r,t,j],q2[r,t,j],hq[r,t,j]))
+                
+               #@constraint(model, pmt[r,t,j] == pmt_func(pg[r,t,j],usina["UG"][j]["perdaMecTurbina"]))
                 c = pgg_lin(usina["UG"][j]["perdaGerador"],usina["UG"][j]["pmin"],usina["UG"][j]["pmax"])    
-                @constraint(model, pgg[r,t,j]  == c[1]+c[2]*pg[r,t,j] )
+                #@constraint(model, pgg[r,t,j]  == c[1]+c[2]*pg[r,t,j] )
+              
                 @constraint(model, pg[r,t,j] - pst[r,t,j] + pmt[r,t,j] + pgg[r,t,j] == 0)
+              
                 k_p, k_s, k_pusina = usina["UG"][j]["perdaHidraulica"]
                 @constraint(model, h[r,t,j] == fcm[r,t]  - fcj[r,t] - (k_p*q[r,t,j]^2 + k_pusina*Q[r,t]^2) - k_s*q[r,t,j]^2)
+               
                 # @constraint(model, q_min[r,t,j] <= q[r,t,j]) # q_min = 0
+               
                 @constraint(model, poly(usina["UG"][j]["vazaoMax"],usina["UG"][j]["hproj"])>= q[r,t,j])
-                @constraint(model, usina["UG"][j]["pmin"] <= pg[r,t,j])
+               
+                @constraint(model, 0*usina["UG"][j]["pmin"] <= pg[r,t,j])
                 @constraint(model, usina["UG"][j]["pmax"] >= pg[r,t,j])
+                
                 ###############################################################################
                 ######################### Rampas para  das turbinas ####################
                 ###############################################################################
@@ -135,24 +146,19 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
                     @constraint(model, pg[r,t,j]-pg[r,t+1,j] <= usina["UG"][j]["rampa"]*pg[r,t,j])    
                     @constraint(model, pg[r,t+1,j]-pg[r,t,j] <= usina["UG"][j]["rampa"]*pg[r,t,j])
                 end
-
             end 
         end
     end
 
       
         
-        
-    #     ###############################################################################
-    #     ######################### Rampas para  das turbinas ####################
-    #     ###############################################################################
-    #     @constraint(model, [r=1:R, t=1:T-1, j=1:J[r]], pg[r,t,j]-pg[j,r,t+1] <= pg_rampa[j,r]*pg[r,t,j])    
-    #     @constraint(model, [r=1:R, t=1:T-1, j=1:J[r]], pg[j,r,t+1]-pg[r,t,j] <= pg_rampa[j,r]*pg[r,t,j])
-        
+              
 
+optimize!(model)
 
-
-        return model
+println(JuMP.value.(pg))
+println(JuMP.value(mercado))
+        return 
 end
 ##
 # model = Model(optimizer_with_attributes(Gurobi.Optimizer, "NonConvex" => 2, "OutputFlag" => 0))
