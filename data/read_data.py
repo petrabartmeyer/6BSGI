@@ -48,7 +48,7 @@ def load_data(dataset):
 
     # Cascade information
 
-    dftau = read_csv(join(dataset, 'cascata.csv'), index_col=0, sep="\s*,\s*", engine='python').stack(0)
+    dftau = read_csv(join(dataset, 'cascata.csv'), index_col=0, sep="\s*,\s*", engine='python').stack(0).apply(lambda x: int(x))
     # Builds a list of lists
     # cascata = list(dftau[dftau > 0].loc[i].dropna().index.to_list() for i in dftau.index)
 
