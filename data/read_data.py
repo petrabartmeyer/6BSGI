@@ -94,7 +94,7 @@ def add_dict_to_unity(problem, fname):
     pot = read_csv(fname, index_col=[0, 1], sep="\s*,\s*", engine='python')
     for u, i in pot.index:
         ugs = problem[u]['UG']
-        if i is -1:
+        if i == -1:
             for j in range(problem[u]['nUG']):
                 ugs[j].update(pot.loc[(u, i)])
         else:
@@ -109,7 +109,7 @@ def add_list_to_unity(problem, key, fname):
     df = read_csv(fname, index_col=[0, 1], sep="\s*,\s*", engine='python')
     for u, i in df.index:
         ugs = problem[u]['UG']
-        if i is -1:
+        if i == -1:
             for j in range(problem[u]['nUG']):
                 ugs[j][key] = df.loc[(u, i)].to_list()
         else:
