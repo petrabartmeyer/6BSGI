@@ -48,11 +48,11 @@ def load_data(dataset):
 
     # Cascade information
 
-    dftau = read_csv(join(dataset, 'cascata.csv'), index_col=0, sep="\s*,\s*", engine='python')
+    dftau = read_csv(join(dataset, 'cascata.csv'), index_col=0, sep="\s*,\s*", engine='python').stack(0)
     # Builds a list of lists
     # cascata = list(dftau[dftau > 0].loc[i].dropna().index.to_list() for i in dftau.index)
 
-    return {'usinas': problem, 'cascata': dftau.to_numpy(dtype='int32')}
+    return {'usinas': problem, 'cascata': dftau[dftau > 0].dropna().to_dict()}
 
 
 def load_instance(dataset, instance, problem):
