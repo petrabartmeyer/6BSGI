@@ -7,6 +7,7 @@ hydrosys_folder = "p1"
 
 hydrosys_data = read_data(hydrosys_folder)
 
+
 model = create_model(hydrosys_data, T=24)
 
 # T = 24			# numero total de intervalos de tempo (1 por hora)

@@ -2,7 +2,33 @@ using JuMP, Gurobi
 
 
 
-function create_model(data::Dict;T::Int=24)
+function create_model(data::Dict;T::Int=24, R::Int=4)
+
+
+ J = [3 3 3 5]		# numero de unidades (turbinas) para cada usina (reservatorio)	
+ L = rand(R,T)		# numero de retas aproximando a funcao alpha (custo da agua) para cada reservatorio
+ max_J =maximum(J)
+ preco_hora = 500*rand(T)				# valor da energia por hora do dia
+ v0 = [2500 1000 500 1000]
+ c1 = 0.8
+ y = rand(R,T)
+ R_up = [[], [], [1,2], [3]]
+ tau = [ 1 1 1 1
+ 	1 1 1 1
+ 	 1 1 1 1
+ 	 1 1 1 1]
+ 	 vmin = 10*ones(R)
+ 	 vmax = 5000*ones(R)
+ 	 alpha_demanda = 0.5
+ 	 q_min = rand(max_J,R,T)
+ 	 q_max = 1000*rand(max_J,R,T)
+ 	 pmin = rand(max_J,R,T)
+ 	 
+ 	 pmax = 1000*rand(max_J,R,T)
+ 	 a = [243 1.07 -0.011]
+ 	 pg_rampa = 0.8*ones(max_J,R)
+ 	 fcm_max = 100*rand(R)
+ 	 delta_fcm = 0.8*ones(R)
     ###############################################################################
     ############################ Funcoes auxiliares ###############################
     ###############################################################################
@@ -18,36 +44,37 @@ function create_model(data::Dict;T::Int=24)
     ############################ Variáveis ########################################
     ###############################################################################
     model = Model(Gurobi.Optimizer)
+    #model = Model(Ipopt.Optimizer)
     @variable(model, 0<= v[r=1:R, t=1:T])			# volume armazenado no reservatorio R no tempo t
     @variable(model, 0<= s[r=1:R, t=1:T])			# volume vertido no reservatorio R no tempo t
     @variable(model, 0<= Q[r=1:R, t=1:T])			# vazao turbinada no reservatorio R no tempo t
-    @variable(model, 0<= q[j=1:max(J), r=1:R, t=1:T])		# vazao turbinada pela unidade j do reservatorio R no tempo t
-    @variable(model, 0<= pg[j=1:max(J), r=1:R, t=1:T])		#u_jrt = 1 se a unidade j do reservatorio r no tempo T está ligado
-    #@variable(model, z[j=1:max(J), k=1:phi, r=1:R, t=1:T], Bin)     # controlar curvas colina
-    #@variable(model, u[j=1:max(J), r=1:R, t=1:T], Bin)		#u_jrt = 1 se a unidade j do reservatorio r no tempo T está ligado
-    #@variable(model, u_on[j=1:max(J), r=1:R, t=1:T], Bin)	#u_jrt = 1 se a unidade j do reservatorio r foi ligada no tempo T  
-    #@variable(model, u_off[j=1:max(J), r=1:R, t=1:T], Bin)	#u_jrt = 1 se a unidade j do reservatorio r  foi desligada no tempo T
+    @variable(model, 0<= q[j=1:max_J, r=1:R, t=1:T])		# vazao turbinada pela unidade j do reservatorio R no tempo t
+    @variable(model, 0<= pg[j=1:max_J, r=1:R, t=1:T])		#u_jrt = 1 se a unidade j do reservatorio r no tempo T está ligado
+    #@variable(model, z[j=1:max_J, k=1:phi, r=1:R, t=1:T], Bin)     # controlar curvas colina
+    #@variable(model, u[j=1:max_J, r=1:R, t=1:T], Bin)		#u_jrt = 1 se a unidade j do reservatorio r no tempo T está ligado
+    #@variable(model, u_on[j=1:max_J, r=1:R, t=1:T], Bin)	#u_jrt = 1 se a unidade j do reservatorio r foi ligada no tempo T  
+    #@variable(model, u_off[j=1:max_J, r=1:R, t=1:T], Bin)	#u_jrt = 1 se a unidade j do reservatorio r  foi desligada no tempo T
     
     ###############################################################################
     ############################ Objective function################################
     ###############################################################################
   
-    @objective(model, Max, sum(preco_hora[t]*pg[r,t] for r=1:R, t=1:T)) # + sum(alpha[r] for r=1:R))
+    @objective(model, Max, sum(preco_hora[t]*pg[j,r,t] for r=1:R, t=1:T, j=1:J[r])) # + sum(alpha[r] for r=1:R))
     
     ###############################################################################
     ############################ Variáveis ########################################
     ###############################################################################
-    @constraint(model, [r=1:R, t=1], v[r,t] - v_inicial[r] + c1*(Q[r,t]+s[r,t]) == c1*y[r,t] )
+    @constraint(model, [r=1:R, t=1], v[r,t] - v0[r] + c1*(Q[r,t]+s[r,t]) == c1*y[r,t] )
     @constraint(model, [r=1:R, t=2:T], v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] for m in R_up[r] if (t-tau[m,r])>=1)) == c1*y[r,t] )
-    @constraint(model, [r=1:R, t=1:T], v_min[r] <= v[r,t])
-    @constraint(model, [r=1:R, t=1:T], v_max[r] >= v[r,t])
-    @constraint(model, [r=1:R, t=1:T], sum(pg[j,r,t] for j=1:n[r,t]) >= alpha_demanda*L[r,t])
-    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg[j,r,t] - pst[j,r,t] + pmt[j,r,t] + pgg[j,r,t] ==0)
+    @constraint(model, [r=1:R, t=1:T], vmin[r] <= v[r,t])
+    @constraint(model, [r=1:R, t=1:T], vmax[r] >= v[r,t])
+    @constraint(model, [r=1:R, t=1:T], sum(pg[j,r,t] for j=1:J[r]) >= alpha_demanda*L[r,t])
+    #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg[j,r,t] - pst[j,r,t] + pmt[j,r,t] + pgg[j,r,t] ==0)
     @constraint(model, [r=1:R, t=1:T], sum(q[j,r,t] for j=1:J[r])-Q[r,t]==0)
-    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], q_min[r,j,t] <= q[j,r,t])
-    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], q_max[r,j,t] >= q[j,r,t])
-    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg_min[r,j,t] <= pg[j,r,t])
-    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg_max[r,j,t] >= pg[j,r,t])
+    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], q_min[j,r,t] <= q[j,r,t])
+    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], q_max[j,r,t] >= q[j,r,t])
+    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], pmin[j,r,t] <= pg[j,r,t])
+    @constraint(model, [r=1:R, t=1:T, j=1:J[r]], pmax[j,r,t] >= pg[j,r,t])
    # @constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg_min[r,j,t]*z[j,k,r,t] <= pg[j,r,t])
    # @constraint(model, [r=1:R, t=1:T, j=1:J[r],k=1:K], pg_max[r,j,t]*z[j,r,k,t] >= pg[j,r,t])
     
@@ -55,7 +82,7 @@ function create_model(data::Dict;T::Int=24)
     ############################ FCM ao final do dia ##############################
     ############################ fcm = a0+ a1*v+a2v^2 #############################
     ###############################################################################
-    @constraint(model, [r=1:R, t=T], poly(a,v[r,t]) >= fcm_max[r]*delta_fcm[r])	
+    @constraint(model, [r=1:R, t=T], a[1] + a[2]*v[r,t] + a[3]*v[r,t]^2 >= fcm_max[r]*delta_fcm[r])	
    # @constraint(model, [r=1:T, t=T, l=1:L[r]], alpha[r] >= coef[r,l,1] + coef[r,l,2]*v[r,t])
     
     
@@ -85,6 +112,6 @@ function create_model(data::Dict;T::Int=24)
     #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg_max[r,j,t]*z[j,r,t] >= pg[j,r,t])
     #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], z[r,j,t] == u[j,r,t])
     #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], z[r,j,t] <= u[j,r,t])
-
+	JuMP.optimize!(model)
     return model
 end
