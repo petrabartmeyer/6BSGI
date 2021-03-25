@@ -17,7 +17,7 @@ def load_data(dataset):
     usinas = read_csv(join(dataset, 'info.csv'), index_col=0, skipinitialspace=True)
 
     # Create problem
-    problem = {i: {'nUG': usinas.loc[i, 'NUG']} for i in usinas.index}
+    problem = {i: {'nUG': int(usinas.loc[i, 'NUG'])} for i in usinas.index}
     # Create units
     for i in problem.keys():
         problem[i]['UG'] = list({} for j in range(problem[i]['nUG']))
@@ -52,9 +52,7 @@ def load_data(dataset):
     # Builds a list of lists
     # cascata = list(dftau[dftau > 0].loc[i].dropna().index.to_list() for i in dftau.index)
 
-    problem['cascata'] = dftau.to_numpy(dtype='int64')
-    
-    return problem
+    return {'usinas': problem, 'cascata': dftau.to_numpy(dtype='int32')}
 
 
 def load_instance(dataset, instance, problem):
