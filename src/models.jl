@@ -131,10 +131,7 @@ function create_model(model::Model)
         ###############################################################################
         ######################### Rampas para  das turbinas ####################
         ###############################################################################
-        @constraint(model, [r=1:R, t=1:T-1, j=1:J[r]], pg[j,r,t]-pg[j,r,t+1] <= pg_rampa[j,r]*pg[j,r,t])    
-        @constraint(model, [r=1:R, t=1:T-1, j=1:J[r]], pg[j,r,t+1]-pg[j,r,t] <= pg_rampa[j,r]*pg[j,r,t])
-        
-        ###############################################################################
+        @constraint(model, [r=1:R, t=1:v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t]################################################
         ######################### ativacao/destivacao das turbinas ####################
         ###############################################################################
     # @constraint(model, [r=1:R, t=1, j=1:J[r]], u_poly(coef_FCM,)on[j,r,t] >= u[j,r,t] - u_begin[j,r])
@@ -149,9 +146,7 @@ function create_model(model::Model)
         ############## restricoes se usar as curvas colina ############################
         ###############################################################################
         #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg_min[r,j,t]*z[j,r,t] <= pg[j,r,t])
-        #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg_max[r,j,t]*z[j,r,t] >= pg[j,r,t])
-        #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], z[r,j,t] == u[j,r,t])
-        #@constraint(model, [r=1:R, t=1:T, j=1:J[r]], z[r,j,t] <= u[j,r,t])
+        #@constraint(model, [r=1:R, t=1v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t]:T, j=1:J[r]], z[r,j,t] <= u[j,r,t])
 end
 
 
@@ -213,8 +208,8 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
             @constraint(model, usina["vmax"] >= v[r,t])
             @constraint(model, sum(q[r,t,j] for j= 1:usina["nUG"])-Q[r,t]==0)
             if t != 1
-                @constraint(model, v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] 
-                for m in R_up[r] if (t-tau[m,r])>=1)) == c1*y[r,t] )
+                @constraint(model, v[r,t] - v[r, t-1] - c1*(Q[r,t]+s[r,t] - sum(Q[m[1],t-cascata[m]]+s[m[1],t-cascata[m]] 
+                for m in keys(cascata) if m[2] == r && t - cascata[m] >= 1 )) == c1*y[r,t])
             end
             for j in 1:usina["nUG"]
                 # @constraint(model, sum(pg[r,t,j] for j=1:J[r]) >= alpha_demanda*L[r,t])
