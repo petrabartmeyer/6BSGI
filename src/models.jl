@@ -59,7 +59,7 @@ function create_model(data::Dict;T::Int=24, R::Int=4)
     ############################ Objective function################################
     ###############################################################################
   
-    @objective(model, Max, sum(preco_hora[t]*pg[j,r,t] for r=1:R, t=1:T, j=1:J[r])) # + sum(alpha[r] for r=1:R))
+    @objective(model, Max, sum(preco_hora[t]*pg[j,r,t] for r=1:R, t=1:T, j=1:J[r])) 
     
     ###############################################################################
     ############################ Variáveis ########################################
@@ -89,8 +89,8 @@ function create_model(data::Dict;T::Int=24, R::Int=4)
     ###############################################################################
     ######################### Rampas para  das turbinas ####################
     ###############################################################################
-    @constraint(model, [r=1:R, t=1:T-1, j=1:J[r]], pg[j,r,t]-pg[j,r,t+1]<=pg_rampa[j,r]*pg[j,r,t])    
-    @constraint(model, [r=1:R, t=1:T-1, j=1:J[r]], pg[j,r,t+1]-pg[j,r,t]<=pg_rampa[j,r]*pg[j,r,t])
+    @constraint(model, [r=1:R, t=1:T-1, j=1:J[r]], pg[j,r,t]-pg[j,r,t+1] <= pg_rampa[j,r]*pg[j,r,t])    
+    @constraint(model, [r=1:R, t=1:T-1, j=1:J[r]], pg[j,r,t+1]-pg[j,r,t] <= pg_rampa[j,r]*pg[j,r,t])
     
     ###############################################################################
     ######################### ativacao/destivacao das turbinas ####################
