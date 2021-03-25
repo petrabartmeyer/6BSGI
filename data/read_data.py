@@ -48,12 +48,36 @@ def load_data(dataset):
 
     # Cascade information
 
-    dftau = read_csv(join(dataset, 'cascata.csv'), index_col=0, sep="\s*,\s*", engine='python').stack(0)
+    dftau = read_csv(join(dataset, 'cascata.csv'), index_col=0, sep="\s*,\s*", engine='python').stack(0).apply(lambda x: int(x))
     # Builds a list of lists
     # cascata = list(dftau[dftau > 0].loc[i].dropna().index.to_list() for i in dftau.index)
 
     return {'usinas': problem, 'cascata': dftau[dftau > 0].dropna().to_dict()}
 
+
+def load_instance_df(dataset, instance, problem):
+    """
+    Loads an instance of a dataset.
+    """
+
+    ipath = join(dataset, instance)
+
+    if not isdir(ipath):
+
+        return {}
+
+    data = {}
+
+    data['demanda'] = read_csv(join(ipath, 'demanda.csv'), index_col=0, sep="\s*,\s*", engine='python')
+
+    data['y'] = get_y(ipath, problem['cascata'])
+    
+    data['v0'] = read_csv(join(ipath, 'volume_inicial.csv'), index_col=0, sep="\s*,\s*", engine='python', squeeze=True)
+
+    data['precos'] = read_csv(join(ipath, 'precos.csv'), index_col=0, sep="\s*,\s*", engine='python', squeeze=True)
+
+    return data
+    
 
 def load_instance(dataset, instance, problem):
     """
@@ -70,7 +94,7 @@ def load_instance(dataset, instance, problem):
 
     data['demanda'] = read_csv(join(ipath, 'demanda.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
 
-    data['y'] = get_y(ipath, problem['cascata'])
+    data['y'] = get_y(ipath, problem['cascata']).to_numpy()
     
     data['v0'] = read_csv(join(ipath, 'volume_inicial.csv'), index_col=0, sep="\s*,\s*", engine='python', squeeze=True).to_list()
 
@@ -94,7 +118,7 @@ def get_y(ipath, cascata):
         for k in range(tau):
             y.loc[k, j] += defluente.loc[23 + (k - tau) + 1, i]
 
-    return y.to_numpy()
+    return y
 
 def add_dict_to_unity(problem, fname):
     """
