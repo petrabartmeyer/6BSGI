@@ -10,4 +10,4 @@ hydro_data,hydro_instance = read_data(hydrosys_folder,hydrosys_instance)
 
 model = Model(Gurobi.Optimizer)
 create_model(model,hydro_data,hydro_instance)
-
+optimize!(model)
