@@ -6,9 +6,10 @@ include("models.jl")
 hydrosys_folder = "p1"
 
 hydrosys_data = read_data(hydrosys_folder)
+# model = Model(Gurobi.Optimizer)
+#model = Model(Ipopt.Optimizer)
 
-
-model = create_model(hydrosys_data, T=24)
+# create_model(model)
 
 # T = 24			# numero total de intervalos de tempo (1 por hora)
 # R = 4 			# numero de reservatorios a serem acoplados
