@@ -159,6 +159,7 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
     c1 = 3600.
     usinas = sort(hydro_data["usinas"])
     cascata = hydro_data["cascata"]
+    y = hydro_instance["y"]
     ###############################################################################
     ############################ Variáveis ########################################
     ###############################################################################
@@ -199,8 +200,8 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
         coef_FCM = interp2_poly(usina["cotaMontante"],usina["vmin"],usina["vmax"])   
         coef_FCJ = interp2_poly(usina["cotaJusante"],qmin,Qmax)   
         FCM_max = poly(coef_FCM,usina["vmax"])
-        # @constraint(model, v[r,1] - v0[r] + c1*(Q[r,1]+s[r,1]) == c1*y[r,1] )
-
+        v0 =  convert(Float64,hydro_instance["v0"][r])
+        @constraint(model, v[r,1] - v0 + c1*(Q[r,1]+s[r,1]) == c1*y[r][1] )
         for t in 1:T
             @constraint(model, fcm[r,t] == poly(coef_FCM,v[r,t]))
             @constraint(model, fcj[r,t] == poly(coef_FCJ,Q[r,t]-s[r,t]))
@@ -209,7 +210,7 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
             @constraint(model, sum(q[r,t,j] for j= 1:usina["nUG"])-Q[r,t]==0)
             if t != 1
                 @constraint(model, v[r,t] - v[r, t-1] - c1*(Q[r,t]+s[r,t] - sum(Q[m[1],t-cascata[m]]+s[m[1],t-cascata[m]] 
-                for m in keys(cascata) if m[2] == r && t - cascata[m] >= 1 )) == c1*y[r,t])
+                for m in keys(cascata) if m[2] == r && t - cascata[m] >= 1 )) == c1*y[r][t])
             end
             for j in 1:usina["nUG"]
                 # @constraint(model, sum(pg[r,t,j] for j=1:J[r]) >= alpha_demanda*L[r,t])
