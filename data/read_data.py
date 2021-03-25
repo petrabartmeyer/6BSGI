@@ -2,17 +2,6 @@ from pandas import read_csv
 from os.path import isdir, join
 
 
-def load_data_as_json(dataset, output='output.json'):
-
-    p = load_data(dataset)
-
-    from json import dump
-
-    with open(output, 'w') as fp:
-
-        dump(p, fp)
-
-
 def load_data(dataset):
     """This function reads all the files of a dataset (name of a
     directory) and returns a dictionary containing all the
@@ -63,12 +52,15 @@ def load_data(dataset):
     # Builds a list of lists
     # cascata = list(dftau[dftau > 0].loc[i].dropna().index.to_list() for i in dftau.index)
 
-    problem['cascata'] = dftau.to_numpy()
+    problem['cascata'] = dftau.to_numpy(dtype='int64')
     
     return problem
 
 
-def load_instance(dataset, instance):
+def load_instance(dataset, instance, problem):
+    """
+    Loads an instance of a dataset.
+    """
 
     ipath = join(dataset, instance)
 
@@ -80,15 +72,35 @@ def load_instance(dataset, instance):
 
     data['demanda'] = read_csv(join(ipath, 'demanda.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
 
-    # Falta ajustar a vazao defluente no t-tau.
-    data['y'] = read_csv(join(ipath, 'afluente.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
-
+    data['y'] = get_y(ipath, problem['cascata'])
+    
     data['v0'] = read_csv(join(ipath, 'volume_inicial.csv'), index_col=0, sep="\s*,\s*", engine='python', squeeze=True).to_list()
 
     data['precos'] = read_csv(join(ipath, 'precos.csv'), index_col=0, sep="\s*,\s*", engine='python', squeeze=True).to_list()
 
     return data
     
+
+def get_y(ipath, cascata):
+    """This function adjusts the flows in the first hours, adding the
+    flow sent in the last hours of the previous days.
+
+    """
+    
+    y = read_csv(join(ipath, 'afluente.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
+    defluente = read_csv(join(ipath, 'defluente.csv'), index_col=0, sep="\s*,\s*", engine='python').to_numpy()
+
+    m, n = cascata.shape
+
+    # Adjust the flow in the first hours
+    for j in range(n):
+        for i in range(m):
+            tau = cascata[i, j]
+            if tau > 0:
+                for k in range(tau):
+                    y[k, j] += defluente[23 + (k - tau) + 1, i]
+
+    return y
 
 def add_dict_to_unity(problem, fname):
     """
