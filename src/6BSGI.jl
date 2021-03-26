@@ -20,4 +20,5 @@ create_model(model,hydro_data,hydro_instance)
 optimize!(model)
 
 println(JuMP.value.(model[:pg]))
-println(JuMP.value(mercado))
+println(JuMP.value(model[:mercado]))
+

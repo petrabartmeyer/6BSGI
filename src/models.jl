@@ -197,27 +197,7 @@ end
 #         @variable(model, 0<= pg[j=1:max_J, r=1:R, t=1:T])		#u_jrt = 1 se a unidade j do reservatorio r no tempo T está ligado
 #         @variable(model, 0<= pmt[j=1:max_J, r=1:R, t=1:T])		#u_jrt = 1 se a unidade j
 #         @variable(model, 0<= pgg[j=1:max_J, r=1:R, t=1:T])		#u_jrt = 1 se a unidade j
-#         @variable(model, 0<= pst[j=1:max_J, r=1:R, t=1:T])		#u_jrt = 1 se a unidade j
-        
-#         ###############################################################################
-#         ############################ Objective function################################
-#         ###############################################################################
-    
-#         @objective(model, Max, sum(preco_hora[t]*pg[j,r,t] for r=1:R, t=1:T, j=1:J[r])) 
-        
-#         ###############################################################################
-#         ############################ Restricoes #######################################
-#         ###############################################################################
-#         @constraint(model, [r=1:R, t=1], v[r,t] - v0[r] + c1*(Q[r,t]+s[r,t]) == c1*y[r,t] )
-#         @constraint(model, [r=1:R, t=2:T], v[r,t] - v[r, t-1] + c1*(Q[r,t]+s[r,t] - sum(Q[m,t-tau[m,r]]+s[m,t-tau[m,r]] for m in R_up[r] if (t-tau[m,r])>=1)) == c1*y[r,t] )
-#         @constraint(model, [r=1:R, t=1:T], vmin[r] <= v[r,t])
-#         @constraint(model, [r=1:R, t=1:T], vmax[r] >= v[r,t])
-#         @constraint(model, [r=1:R, t=1:T], sum(pg[j,r,t] for j=1:J[r]) >= alpha_demanda*L[r,t])
-        
-        
-#         # @constraint(model,[r=1:R, t=1:T, j=1:J[r]],pst[j,r,t] == pst_func(G,RendHidro[j,r],h[j,r,t],h2[j,r,t],q[j,r,t],q2[j,r,t],hq[j,r,t]))
-#         # @NLconstraint(model,[r=1:R, t=1:T, j=1:J[r]], pmt[j,r,t] == pmt_func(pg[j,r,t],PerdaMecTurb[j,r]))
-#         # c = pgg_lin(pg,f[j,r],xmin[j,r],xmax[j,r])    
+#       cosneguir am  # c = pgg_lin(pg,f[j,r],xmin[j,r],xmax[j,r])    
 #         # @constraint(model, [r=1:R, t=1:T, j=1:J[r]], pgg[j,r,t]  == c[1]+c[2]*pg[j,r,t] )
 #         # @constraint(model, [r=1:R, t=1:T, j=1:J[r]], pg[j,r,t] - pst[j,r,t] + pmt[j,r,t] + pgg[j,r,t]  ==0)
             
