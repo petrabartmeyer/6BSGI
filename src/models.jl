@@ -1,4 +1,3 @@
-using JuMP, Gurobi
 
 ###############################################################################
 ############################ Funcoes auxiliares ###############################
@@ -92,7 +91,7 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
     ############################ Objective function################################
     ###############################################################################
     
-    @objective(model, Max, sum(preco_hora[t]*pg[r,t,j] for r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"])) 
+    @objective(model, Max, sum(preco_hora[t]*pg[r,t,j] for r in keys(usinas), t in 1:T,j in 1: usinas[r]["nUG"]) - 10000000 * mercado) 
         
     #     ###############################################################################
     #     ############################ Restricoes #######################################
@@ -150,15 +149,7 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
         end
     end
 
-      
-        
-              
-
-optimize!(model)
-
-println(JuMP.value.(pg))
-println(JuMP.value(mercado))
-        return 
+    return model
 end
 ##
 # model = Model(optimizer_with_attributes(Gurobi.Optimizer, "NonConvex" => 2, "OutputFlag" => 0))
