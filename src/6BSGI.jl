@@ -19,6 +19,6 @@ model = Model(optimizer_with_attributes(
 create_model(model,hydro_data,hydro_instance)
 optimize!(model)
 
-println(JuMP.value.(model[:pg]))
-println(JuMP.value(model[:mercado]))
+println(value.(model[:pg]))
+println(value(model[:mercado]))
 
