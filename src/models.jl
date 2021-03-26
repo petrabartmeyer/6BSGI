@@ -103,7 +103,7 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
         coef_FCJ = interp2_poly(usina["cotaJusante"],qmin,Qmax)   
         FCM_max = poly(coef_FCM,usina["vmax"])
         v0 =  convert(Float64,hydro_instance["v0"][r])
-        @constraint(model, v[r,1] - v0 + c1*(Q[r,1]+s[r,1]) == c1*y[r][1] )
+        @constraint(model, v[r,1] - (usina["vmin"] + v0) + c1*(Q[r,1]+s[r,1]) == c1*y[r][1] )
         @constraint(model, fcm[r,T] >= FCM_max*delta_fcm[r])	
 
         for t in 1:T
@@ -118,7 +118,7 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
             end
          
                @constraint(model, sum(pg[r,t,j] for j in 1:usina["nUG"]) +mercado >= alpha_demanda*L[r][t])
-               @constraint(model, sum(pg[r,t,j] for j in 1:usina["nUG"]) <= (2-alpha_demanda)*L[r][t])
+               # @constraint(model, sum(pg[r,t,j] for j in 1:usina["nUG"]) <= (2-alpha_demanda)*L[r][t])
             for j in 1:usina["nUG"]
                 #@constraint(model,pst[r,t,j] == pst_func(G,usina["UG"][j]["rendimentoHidraulico"],h[r,t,j],h2[r,t,j],q[r,t,j],q2[r,t,j],hq[r,t,j]))
                 
@@ -134,16 +134,19 @@ function create_model(model::Model,hydro_data::Dict,hydro_instance::Dict)
                 # @constraint(model, q_min[r,t,j] <= q[r,t,j]) # q_min = 0
                
                 @constraint(model, poly(usina["UG"][j]["vazaoMax"],usina["UG"][j]["hproj"])>= q[r,t,j])
-               
-                @constraint(model, 0*usina["UG"][j]["pmin"] <= pg[r,t,j])
-                @constraint(model, usina["UG"][j]["pmax"] >= pg[r,t,j])
+
+                pmax = usina["UG"][j]["pmax"]
+                pmin = usina["UG"][j]["pmin"]
+                
+                @constraint(model, 0 * pmin <= pg[r,t,j])
+                @constraint(model, pmax >= pg[r,t,j])
                 
                 ###############################################################################
                 ######################### Rampas para  das turbinas ####################
                 ###############################################################################
                 if t != T
-                    @constraint(model, pg[r,t,j]-pg[r,t+1,j] <= usina["UG"][j]["rampa"]*pg[r,t,j])    
-                    @constraint(model, pg[r,t+1,j]-pg[r,t,j] <= usina["UG"][j]["rampa"]*pg[r,t,j])
+                    @constraint(model, pg[r,t,j]-pg[r,t+1,j] <= usina["UG"][j]["rampa"]* (pmax - pmin))    
+                    @constraint(model, pg[r,t+1,j]-pg[r,t,j] <= usina["UG"][j]["rampa"]* (pmax - pmin))
                 end
             end 
         end
